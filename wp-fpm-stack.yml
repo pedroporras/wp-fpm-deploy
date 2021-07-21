@@ -1,0 +1,81 @@
+version: "3.1"
+services:
+  wordpress:
+    image: wordpress:fpm
+    restart: always
+    environment:
+      WORDPRESS_DB_HOST: db
+      WORDPRESS_DB_USER: exampleuser
+      WORDPRESS_DB_PASSWORD: examplepass
+      WORDPRESS_DB_NAME: exampledb
+
+    volumes:
+      - wordpress:/var/www/html
+      - ${PWD}/themes:/var/www/html/wp-content/themes/
+      - ${PWD}/plugins:/var/www/html/wp-content/plugins/
+      - ${PWD}/uploads:/var/www/html/wp-content/uploads/
+    logging:
+        driver: "json-file"
+        options:
+            max-file: "5"
+            max-size: "10m"
+    depends_on:
+      - db
+
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 2000M
+      mode: replicated
+      replicas: 1
+
+  nginx:
+    image: nginx
+    ports:
+      - 9000:80
+    volumes:
+      - ./inexpresivo.com.conf:/etc/nginx/conf.d/inexpresivo.com.conf
+      - wordpress:/var/www/html
+      - ${PWD}/themes:/var/www/html/wp-content/themes/
+      - ${PWD}/plugins:/var/www/html/wp-content/plugins/
+      - ${PWD}/uploads:/var/www/html/wp-content/uploads/
+    depends_on:
+      - wordpress
+    logging:
+        driver: "json-file"
+        options:
+            max-file: "5"
+            max-size: "10m"
+
+  db:
+    image: mysql:5.7
+    restart: always
+    environment:
+      MYSQL_DATABASE: exampledb
+      MYSQL_USER: exampleuser
+      MYSQL_PASSWORD: examplepass
+      MYSQL_ROOT_PASSWORD: "rootpass"
+    volumes:
+      - db:/var/lib/mysql
+      - ${PWD}/shared-data:/var/shared-data
+    logging:
+        driver: "json-file"
+        options:
+            max-file: "5"
+            max-size: "10m"
+
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+        - 10000:8080
+    logging:
+        driver: "json-file"
+        options:
+            max-file: "5"
+            max-size: "10m"
+            
+volumes:
+  wordpress:
+  db:
